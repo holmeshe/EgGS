@@ -1,14 +1,9 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Interrupt Descriptor Table management
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
 #include <system.h>
 
 #define IDT_FLUSH(addr) ({ \
 __asm__ __volatile__ (	"IDT_FLUSH:\n\t" \
 						"lidt %0" \
-						::"m"(addr):"%eax"); })
+						::"m"(addr):"%eax"); }) //this line: input type should be 'm'
 
 
 /* Defines an IDT entry */

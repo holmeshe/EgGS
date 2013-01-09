@@ -1,29 +1,61 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Global function declarations and type definitions
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
 #ifndef __SYSTEM_H
 #define __SYSTEM_H
+#include <stdarg.h>
 
 typedef int size_t;
 
 /* This defines what the stack looks like after an ISR was running */
-struct regs
+typedef struct regs
 {
     unsigned int gs, fs, es, ds;
     unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;
     unsigned int int_no, err_code;
-    unsigned int eip, cs, eflags, useresp, ss;    
-};
+    unsigned int eip, cs, eflags, useresp, ss;
+}STR_REGS;
 
-/* MAIN.C */
+#define _DEBUG_FLAG_BLK
+
+//inline assembly utilities
+#define sti() __asm__ ("sti"::)
+#define cli() __asm__ ("cli"::)
+#define nop() __asm__ ("nop"::)
+
+#define outb(value,port) \
+__asm__ ("outb %%al,%%dx"::"a" (value),"d" (port))
+
+
+#define inb(port) ({ \
+unsigned char _v; \
+__asm__ volatile ("inb %%dx,%%al":"=a" (_v):"d" (port)); \
+_v; \
+})
+
+#define outb_p(value,port) \
+__asm__ ("outb %%al,%%dx\n" \
+		"\tjmp 1f\n" \
+		"1:\tjmp 1f\n" \
+		"1:"::"a" (value),"d" (port))
+
+#define inb_p(port) ({ \
+unsigned char _v; \
+__asm__ volatile ("inb %%dx,%%al\n" \
+	"\tjmp 1f\n" \
+	"1:\tjmp 1f\n" \
+	"1:":"=a" (_v):"d" (port)); \
+_v; \
+})
+
+//end inline assembly utilities
+/* UTIL.C */
 extern void *memcpy(void *dest, const void *src, size_t count);
 extern void *memset(void *dest, char val, size_t count);
 extern unsigned short *memsetw(unsigned short *dest, unsigned short val, size_t count);
 extern size_t strlen(const char *str);
-extern unsigned char inportb (unsigned short _port);
-extern void outportb (unsigned short _port, unsigned char _data);
+//extern unsigned char inportb (unsigned short _port);
+//extern void outportb (unsigned short _port, unsigned char _data);
+extern int vsprintf(char *buf, const char *fmt, va_list args);
+extern void printk(const char *fmt, ...);
+extern void panic(const char * s);
 
 /* CONSOLE.C */
 extern void init_video(void);
@@ -44,7 +76,7 @@ extern void idt_install();
 extern void isrs_install();
 
 /* IRQ.C */
-extern void irq_install_handler(int irq, void (*handler)(struct regs *r));
+extern void irq_install_handler(int irq, void (*handler)(void));
 extern void irq_uninstall_handler(int irq);
 extern void irq_install();
 
@@ -56,3 +88,4 @@ extern void timer_install();
 extern void keyboard_install();
 
 #endif
+

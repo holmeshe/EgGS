@@ -14,7 +14,7 @@ unsigned long timer_ticks = 0;
 *  timer fires. By default, the timer fires 18.222 times
 *  per second. Why 18.222Hz? Some engineer at IBM must've
 *  been smoking something funky */
-void timer_handler(struct regs *r)
+void timer_handler(void)
 {
     /* Increment our 'tick count' */
     timer_ticks++;
@@ -23,7 +23,7 @@ void timer_handler(struct regs *r)
     *  display a message on the screen */
     if (timer_ticks % 18 == 0)
     {
-        puts("One second has passed\n");
+//        printk("One second has passed\n");
     }
 }
 

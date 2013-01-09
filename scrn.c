@@ -53,10 +53,10 @@ void move_csr(void)
     *  learn more, you should look up some VGA specific
     *  programming documents. A great start to graphics:
     *  http://www.brackeen.com/home/vga */
-    outportb(0x3D4, 14);
-    outportb(0x3D5, temp >> 8);
-    outportb(0x3D4, 15);
-    outportb(0x3D5, temp);
+    outb(14, 0x3D4);
+    outb(temp >> 8, 0x3D5);
+    outb(15, 0x3D4);
+    outb(temp, 0x3D5);
 }
 
 /* Clears the screen */
@@ -80,6 +80,7 @@ void cls()
     csr_y = 0;
     move_csr();
 }
+
 
 #define TO_HEX(i) (i <= 9 ? '0' + i : 'A' - 10 + i)
 void putx(unsigned int d)

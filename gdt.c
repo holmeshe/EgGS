@@ -1,8 +1,3 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Global Descriptor Table management
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
 #include <system.h>
 #define GDT_FLUSH(addr) ({ \
 __asm__ __volatile__ (	"GDT_FLUSH:\n\t" \

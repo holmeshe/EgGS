@@ -42,6 +42,10 @@ start:
 	jmp pageenabled
 
 pageenabled:
+	/* Push the pointer to the Multiboot information structure. */
+    pushl   %ebx
+    /* Push the magic value. */
+    pushl   %eax
     call  kmain
 
     cli

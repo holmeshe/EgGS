@@ -1,8 +1,3 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Interrupt Service Routines installer and exceptions
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
 #include <system.h>
 
 /* This is a simple string array. It contains the message that
@@ -58,195 +53,195 @@ void fault_handler(struct regs *r)
 {
     if (r->int_no < 32)
     {
-        puts(exception_messages[r->int_no]);
-        puts(" Exception. System Halted!\n");
+        printk(exception_messages[r->int_no]);
+        printk(" Exception. System Halted!\n");
         for (;;);
     }
 }
 
 __asm__ (
 //0: Divide By Zero Exception
-	"isr0:\t\n"
-	"cli\t\n"
+    "isr0:\t\n"
+    "cli\t\n"
     "pushl $0\t\n"
     "pushl $0\t\n"
     "jmp isr_common_stub\t\n"
 //1: Debug Exception
-"isr1:\n\t"
+    "isr1:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $1\n\t"
     "jmp isr_common_stub\n\t"
 //2: Non Maskable Interrupt Exception
-"isr2:\n\t"
+    "isr2:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $2\n\t"
     "jmp isr_common_stub\n\t"
 //3: Int 3 Exception
-"isr3:\n\t"
+    "isr3:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $3\n\t"
     "jmp isr_common_stub\n\t"
 //4: INTO Exception
-"isr4:\n\t"
+    "isr4:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $4\n\t"
     "jmp isr_common_stub\n\t"
 //5: Out of Bounds Exception
-"isr5:\n\t"
+    "isr5:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $5\n\t"
     "jmp isr_common_stub\n\t"
 //6: Invalid Opcode Exception
-"isr6:\n\t"
+    "isr6:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $6\n\t"
     "jmp isr_common_stub\n\t"
 //7: Coprocessor Not Available Exception
-"isr7:\n\t"
+    "isr7:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $7\n\t"
     "jmp isr_common_stub\n\t"
 //8: Double Fault Exception (With Error Code!)
-"isr8:\n\t"
+    "isr8:\n\t"
     "cli\n\t"
     "pushl $8\n\t"
     "jmp isr_common_stub\n\t"
 //9: Coprocessor Segment Overrun Exception
-"isr9:\n\t"
+    "isr9:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $9\n\t"
     "jmp isr_common_stub\n\t"
 //10: Bad TSS Exception (With Error Code!)
-"isr10:\n\t"
+    "isr10:\n\t"
     "cli\n\t"
     "pushl $10\n\t"
     "jmp isr_common_stub\n\t"
 //11: Segment Not Present Exception (With Error Code!)
-"isr11:\n\t"
+    "isr11:\n\t"
     "cli\n\t"
     "pushl $11\n\t"
     "jmp isr_common_stub\n\t"
 //12: Stack Fault Exception (With Error Code!)
-"isr12:\n\t"
+    "isr12:\n\t"
     "cli\n\t"
     "pushl $12\n\t"
     "jmp isr_common_stub\n\t"
 //13: General Protection Fault Exception (With Error Code!)
-"isr13:\n\t"
+    "isr13:\n\t"
     "cli\n\t"
     "pushl $13\n\t"
     "jmp isr_common_stub\n\t"
 //14: Page Fault Exception (With Error Code!)
-"isr14:\n\t"
+    "isr14:\n\t"
     "cli\n\t"
     "pushl $14\n\t"
     "jmp isr_common_stub\n\t"
 //15: Reserved Exception
-"isr15:\n\t"
+    "isr15:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $15\n\t"
     "jmp isr_common_stub\n\t"
 //16: Floating Point Exception
-"isr16:\n\t"
+    "isr16:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $16\n\t"
     "jmp isr_common_stub\n\t"
 //17: Alignment Check Exception
-"isr17:\n\t"
+    "isr17:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $17\n\t"
     "jmp isr_common_stub\n\t"
 //18: Machine Check Exception
-"isr18:\n\t"
+    "isr18:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $18\n\t"
     "jmp isr_common_stub\n\t"
 //19: Reserved
-"isr19:\n\t"
+    "isr19:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $19\n\t"
     "jmp isr_common_stub\n\t"
 //20: Reserved
-"isr20:\n\t"
+    "isr20:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $20\n\t"
     "jmp isr_common_stub\n\t"
 //21: Reserved
-"isr21:\n\t"
+    "isr21:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $21\n\t"
     "jmp isr_common_stub\n\t"
 //22: Reserved
-"isr22:\n\t"
+    "isr22:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $22\n\t"
     "jmp isr_common_stub\n\t"
 //23: Reserved
-"isr23:\n\t"
+    "isr23:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $23\n\t"
     "jmp isr_common_stub\n\t"
 //24: Reserved
-"isr24:\n\t"
+    "isr24:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $24\n\t"
     "jmp isr_common_stub\n\t"
 //25: Reserved
-"isr25:\n\t"
+    "isr25:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $25\n\t"
     "jmp isr_common_stub\n\t"
 //26: Reserved
-"isr26:\n\t"
+    "isr26:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $26\n\t"
     "jmp isr_common_stub\n\t"
 //27: Reserved
-"isr27:\n\t"
+    "isr27:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $27\n\t"
     "jmp isr_common_stub\n\t"
 //28: Reserved
-"isr28:\n\t"
+    "isr28:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $28\n\t"
     "jmp isr_common_stub\n\t"
 //29: Reserved
-"isr29:\n\t"
+    "isr29:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $29\n\t"
     "jmp isr_common_stub\n\t"
 //30: Reserved
-"isr30:\n\t"
+    "isr30:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $30\n\t"
     "jmp isr_common_stub\n\t"
 //31: Reserved
-"isr31:\n\t"
+    "isr31:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $31\n\t"
@@ -254,7 +249,7 @@ __asm__ (
 //This is our common ISR stub. It saves the processor state, sets
 //up for kernel mode segments, calls the C-level fault handler,
 //and finally restores the stack frame.
-"isr_common_stub:\t\n"
+    "isr_common_stub:\t\n"
     "pusha\t\n"
     "pushl %ds\t\n"
     "pushl %es\t\n"
@@ -265,8 +260,8 @@ __asm__ (
     "mov %ax, %es\t\n"
     "mov %ax, %fs\t\n"
     "mov %ax, %gs\t\n"
-    "mov %esp, %eax\t\n"
-    "pushl %eax\t\n"
+    "mov %esp, %eax\t\n"      //this line: for param struct regs *r
+    "pushl %eax\t\n"          //this line: for param struct regs *r
     "call fault_handler\t\n"
     "popl %eax\t\n"
     "popl %gs\t\n"
@@ -322,7 +317,7 @@ extern void isr31();
 *  hex. */
 void isrs_install()
 {
-//	putx((unsigned)isr0);
+//  putx((unsigned)isr0);
     idt_set_gate(0, (unsigned)isr0, 0x10, 0x8E);
     idt_set_gate(1, (unsigned)isr1, 0x10, 0x8E);
     idt_set_gate(2, (unsigned)isr2, 0x10, 0x8E);
@@ -359,3 +354,4 @@ void isrs_install()
     idt_set_gate(30, (unsigned)isr30, 0x10, 0x8E);
     idt_set_gate(31, (unsigned)isr31, 0x10, 0x8E);
 }
+

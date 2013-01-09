@@ -1,54 +1,15 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Main.c: C code entry.
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
+#include <multiboot.h>
 #include <system.h>
+#include <fs.h>
 
-void *memcpy(void *dest, const void *src, size_t count)
+void kmain(unsigned long magic, multiboot_info_t * mbi)
 {
-    const char *sp = (const char *)src;
-    char *dp = (char *)dest;
-    for(; count != 0; count--) *dp++ = *sp++;
-    return dest;
-}
+   if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
+   {
+      printk ("Invalid magic number: 0x%x\n", (unsigned) magic);
+      return;
+   }
 
-void *memset(void *dest, char val, size_t count)
-{
-    char *temp = (char *)dest;
-    for( ; count != 0; count--) *temp++ = val;
-    return dest;
-}
-
-unsigned short *memsetw(unsigned short *dest, unsigned short val, size_t count)
-{
-    unsigned short *temp = (unsigned short *)dest;
-    for( ; count != 0; count--) *temp++ = val;
-    return dest;
-}
-
-size_t strlen(const char *str)
-{
-    size_t retval;
-    for(retval = 0; *str != '\0'; str++) retval++;
-    return retval;
-}
-
-unsigned char inportb (unsigned short _port)
-{
-    unsigned char rv;
-    __asm__ __volatile__ ("inb %1, %0" : "=a" (rv) : "dN" (_port));
-    return rv;
-}
-
-void outportb (unsigned short _port, unsigned char _data)
-{
-    __asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
-}
-
- 
-void kmain(void)
-{
    gdt_install();
    idt_install();
    
@@ -56,11 +17,12 @@ void kmain(void)
    isrs_install();
    irq_install();
    timer_install();
+   init_blk(mbi);
    __asm__ __volatile__ ("sti");
 
-   puts("Egg:hello there!\n");
+   printk("EgGS:hello there!\n");
+
 //   int i = 10 / 0;
-//   putx(0x53232345);
 
    for (;;);
 }

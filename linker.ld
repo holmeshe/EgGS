@@ -1,4 +1,4 @@
-OUTPUT_FORMAT("elf32-i386")
+OUTPUT_FORMAT("elf32-i386")/*this line fucked me*/
 ENTRY(start)
 phys = 0x00100000;
 SECTIONS

@@ -1,103 +1,98 @@
-/* bkerndev - Bran's Kernel Development Tutorial
-*  By:   Brandon F. (friesenb@gmail.com)
-*  Desc: Interrupt Request management
-*
-*  Notes: No warranty expressed or implied. Use at own risk. */
 #include <system.h>
 
 __asm__ (
 //32: IRQ0
-"irq0:\t\n"
-	"cli\t\n"
+    "irq0:\t\n"
+    "cli\t\n"
     "pushl $0\t\n"
     "pushl $32\t\n"
     "jmp irq_common_stub\t\n"
 //33: IRQ1
-"irq1:\n\t"
+    "irq1:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $33\n\t"
     "jmp irq_common_stub\n\t"
 //34: IRQ2
-"irq2:\n\t"
+    "irq2:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $34\n\t"
     "jmp irq_common_stub\n\t"
 //35: IRQ3
-"irq3:\n\t"
+    "irq3:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $35\n\t"
     "jmp irq_common_stub\n\t"
 //36: IRQ4
-"irq4:\n\t"
+    "irq4:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $36\n\t"
     "jmp irq_common_stub\n\t"
 //37: IRQ5
-"irq5:\n\t"
+    "irq5:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $37\n\t"
     "jmp irq_common_stub\n\t"
 //38: IRQ6
-"irq6:\n\t"
+    "irq6:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $38\n\t"
     "jmp irq_common_stub\n\t"
 //39: IRQ7
-"irq7:\n\t"
+    "irq7:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $39\n\t"
     "jmp irq_common_stub\n\t"
 //40: IRQ8
-"irq8:\n\t"
+    "irq8:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $40\n\t"
     "jmp irq_common_stub\n\t"
 //41: IRQ9
-"irq9:\n\t"
+    "irq9:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $41\n\t"
     "jmp irq_common_stub\n\t"
 //42: IRQ10
-"irq10:\n\t"
+    "irq10:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $42\n\t"
     "jmp irq_common_stub\n\t"
 //43: IRQ11
-"irq11:\n\t"
+    "irq11:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $43\n\t"
     "jmp irq_common_stub\n\t"
 //44: IRQ12
-"irq12:\n\t"
+    "irq12:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $44\n\t"
     "jmp irq_common_stub\n\t"
 //45: IRQ13
-"irq13:\n\t"
+    "irq13:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $45\n\t"
     "jmp irq_common_stub\n\t"
 //46: IRQ14
-"irq14:\n\t"
+    "irq14:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $46\n\t"
     "jmp irq_common_stub\n\t"
 //47: IRQ15
-"irq15:\n\t"
+    "irq15:\n\t"
     "cli\n\t"
     "pushl $0\n\t"
     "pushl $47\n\t"
@@ -105,7 +100,7 @@ __asm__ (
 //This is our common irq stub. It saves the processor state, sets
 //up for kernel mode segments, calls the C-level fault handler,
 //and finally restores the stack frame.
-	"irq_common_stub:\t\n"
+    "irq_common_stub:\t\n"
     "pusha\t\n"
     "pushl %ds\t\n"
     "pushl %es\t\n"
@@ -116,8 +111,8 @@ __asm__ (
     "mov %ax, %es\t\n"
     "mov %ax, %fs\t\n"
     "mov %ax, %gs\t\n"
-    "mov %esp, %eax\t\n"
-    "pushl %eax\t\n"
+    "mov %esp, %eax\t\n"      //this line: for param struct regs *r
+    "pushl %eax\t\n"          //this line: for param struct regs *r
     "call irq_handler\t\n"
     "popl %eax\t\n"
     "popl %gs\t\n"
@@ -159,7 +154,7 @@ void *irq_routines[16] =
 };
 
 /* This installs a custom IRQ handler for the given IRQ */
-void irq_install_handler(int irq, void (*handler)(struct regs *r))
+void irq_install_handler(int irq, void (*handler)(void))
 {
     irq_routines[irq] = handler;
 }
@@ -180,16 +175,16 @@ void irq_uninstall_handler(int irq)
 *  47 */
 void irq_remap(void)
 {
-    outportb(0x20, 0x11);
-    outportb(0xA0, 0x11);
-    outportb(0x21, 0x20);
-    outportb(0xA1, 0x28);
-    outportb(0x21, 0x04);
-    outportb(0xA1, 0x02);
-    outportb(0x21, 0x01);
-    outportb(0xA1, 0x01);
-    outportb(0x21, 0x0);
-    outportb(0xA1, 0x0);
+    outb(0x11, 0x20);
+    outb(0x11, 0xA0);
+    outb(0x20, 0x21);
+    outb(0x28, 0xA1);
+    outb(0x04, 0x21);
+    outb(0x02, 0xA1);
+    outb(0x01, 0x21);
+    outb(0x01, 0xA1);
+    outb(0x0, 0x21);
+    outb(0x0, 0xA1);
 }
 
 /* We first remap the interrupt controllers, and then we install
@@ -231,10 +226,23 @@ void irq_install()
 void irq_handler(struct regs *r)
 {
     /* This is a blank function pointer */
-    void (*handler)(struct regs *r);
-    
+    void (*handler)(void);
+
 //    putx(r->int_no);
 //    puts("\n");
+
+    /* If the IDT entry that was invoked was greater than 40
+      *  (meaning IRQ8 - 15), then we need to send an EOI to
+      *  the slave controller */
+    if (r->int_no >= 40)
+    {
+        outb(0x20, 0xA0);
+    }
+
+    /* In either case, we need to send an EOI to the master
+    *  interrupt controller too */
+    outb(0x20, 0x20);
+
 
     /* Find out if we have a custom handler to run for this
     *  IRQ, and then finally, run it */
@@ -242,19 +250,7 @@ void irq_handler(struct regs *r)
 
     if ((unsigned long)handler != 0)
     {
-//    	putx(handler);
-        handler(r);
+//      putx(handler);
+        handler();
     }
-
-    /* If the IDT entry that was invoked was greater than 40
-    *  (meaning IRQ8 - 15), then we need to send an EOI to
-    *  the slave controller */
-    if (r->int_no >= 40)
-    {
-        outportb(0xA0, 0x20);
-    }
-
-    /* In either case, we need to send an EOI to the master
-    *  interrupt controller too */
-    outportb(0x20, 0x20);
 }
