@@ -10,4 +10,4 @@ I call it eggs because
 
 1. It share a simillar suffix of the Unix and Linux, at least pronouncedly
 
-2. I am writing an 'O's :)
+2. I am writing 'O's :)
