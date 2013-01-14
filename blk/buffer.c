@@ -12,8 +12,8 @@ int NR_BUFFERS = 0;
 inline void wait_on_buff(struct buffer_head * bh)
 {
     cli();
-#ifdef _DEBUG_FLAG
-    printk("wait on buff:%d\n", bh->b_lock);
+#ifdef _DEBUG_FLAG_LOCK
+    printk("wait on buff lock[%d]\n", bh->b_lock);
 #endif
     while (bh->b_lock)
 //tpc                   sleep_on(&bh->b_wait);
@@ -23,8 +23,8 @@ inline void wait_on_buff(struct buffer_head * bh)
 inline void lock_buff(struct buffer_head * bh)
 {
     cli();
-#ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:lock buff:%d\n", bh->b_lock);
+#ifdef _DEBUG_FLAG_LOCK
+    printk("debug_blk:lock buff lock[%d]\n", bh->b_lock);
 #endif
 //tpc    while (bh->b_lock)
 //tpc       sleep_on(&bh->b_wait);
@@ -34,8 +34,12 @@ inline void lock_buff(struct buffer_head * bh)
 
 inline void unlock_buff(struct buffer_head * bh)
 {
+#ifdef _DEBUG_FLAG_LOCK
+          printk("debug_blk:unlock buff lock[%d]\n", bh->b_lock);
+#endif
+
     if (!bh->b_lock)
-        printk("free buffer being unlocked\n\r");
+        printk("unlock buffer being unlocked\n\r");
     bh->b_lock = 0;
 //tpc   wake_up(&bh->b_wait);
 }
@@ -58,7 +62,21 @@ void sync_dev(int dev)
     }
 }
 
-inline void invalidate_buffers(int dev)
+inline void invalidate_buff(unsigned int dev, unsigned int block)
+{
+	struct buffer_head * bh = retain_buff(dev,block);
+	if (bh) {
+		if (bh->b_count != 1) {
+			printk("trying to free block (%04x:%d), count=%d\n",
+				dev,block,bh->b_count);
+			return;
+		}
+		bh->b_uptodate = bh->b_dirt = 0;
+		put_buff(bh);
+	}
+}
+
+inline void invalidate_buffs(int dev)
 {
     int i;
     struct buffer_head * bh;
@@ -66,11 +84,12 @@ inline void invalidate_buffers(int dev)
     bh = start_buffer;
     for (i=0 ; i<NR_BUFFERS ; i++,bh++)
     {
-        if (bh->b_dev != dev)
-            continue;
-        wait_on_buff(bh);
         if (bh->b_dev == dev)
-            bh->b_uptodate = bh->b_dirt = 0;
+        {
+              wait_on_buff(bh);
+              if (bh->b_dev == dev)
+              bh->b_uptodate = bh->b_dirt = 0;
+        }
     }
 }
 
@@ -112,7 +131,7 @@ static inline void insert_into_queues(struct buffer_head * bh)
     bh->b_next->b_prev = bh;
 }
 
-static struct buffer_head * find_buffer_from_hash(unsigned int dev, unsigned int block)
+static struct buffer_head * find_buff(unsigned int dev, unsigned int block)
 {
     struct buffer_head * tmp;
 
@@ -120,83 +139,75 @@ static struct buffer_head * find_buffer_from_hash(unsigned int dev, unsigned int
         if (tmp->b_dev==dev && tmp->b_blocknr==block)
         {
 #ifdef _DEBUG_FLAG_BLK
-            printk("debug_blk:find buff in hash table\n\r");
+            printk("debug_blk:find buff[0x%x:0x%x] in hash table\n\r", dev, block);
 #endif
             return tmp;
         }
     return NULL;
 }
 
-struct buffer_head * query_buff(unsigned int dev, unsigned int block)
+struct buffer_head * retain_buff(unsigned int dev, unsigned int block)
 {
     struct buffer_head * bh;
 
     for (;;)
     {
-        if (!(bh=find_buffer_from_hash(dev,block)))
+        if (!(bh=find_buff(dev,block)))
             return NULL;
-        bh->b_count++;
+
         wait_on_buff(bh);
-        if (bh->b_dev == dev && bh->b_blocknr == block)
+        if (bh->b_dev != dev || bh->b_blocknr != block)
         {
-#ifdef _DEBUG_FLAG_BLK
-            printk("debug_blk:hit buff!\n\r");
-#endif
-            return bh;
+		continue;
         }
-        bh->b_count--;
+        bh->b_count++;
+#ifdef _DEBUG_FLAG_BLK
+        printk("debug_blk:retain buff[0x%x:0x%x]\n\r", dev, block);
+#endif
+        return bh;
     }
 }
 
 
-/*
- * Ok, this is getblk, and it isn't very clear, again to hinder
- * race-conditions. Most of the code is seldom used, (ie repeating),
- * so it should be much more efficient than it looks.
- *
- * The algoritm is changed: hopefully better, and an elusive bug removed.
- */
 #define BADNESS(bh) (((bh)->b_dirt<<1)+(bh)->b_lock)
-struct buffer_head * get_buff(unsigned int dev, unsigned int block)
+static struct buffer_head * new_buff(unsigned int dev, unsigned int block)
 {
     struct buffer_head * tmp, * bh;
 
-repeat:
-    if ((bh = query_buff(dev,block)))
-        return bh;
+    bh = NULL;
     tmp = free_list;
     do
     {
-        if (tmp->b_count)
-            continue;
-        if (!bh || BADNESS(tmp)<BADNESS(bh))
+        if (tmp->b_count == 0&& 
+			(!bh || BADNESS(tmp)<BADNESS(bh)))
         {
             bh = tmp;
             if (!BADNESS(tmp))
                 break;
         }
-        /* and repeat until we find something good */
-    }
-    while ((tmp = tmp->b_next_free) != free_list);
+    } while ((tmp = tmp->b_next_free) != free_list);
     if (!bh)
     {
 //tpc           sleep_on(&buffer_wait);
-        goto repeat;
+        return NULL;
     }
     wait_on_buff(bh);
     if (bh->b_count)
-        goto repeat;
+        return NULL;
     while (bh->b_dirt)
     {
         sync_dev(bh->b_dev);
         wait_on_buff(bh);
         if (bh->b_count)
-            goto repeat;
+            return NULL;
     }
     /* NOTE!! While we slept waiting for this block, somebody else might */
     /* already have added "this" block to the cache. check it */
-    if (find_buffer_from_hash(dev,block))
-        goto repeat;
+    if (find_buff(dev,block))
+    {
+       printk("buff bad luck");
+        return NULL;
+    }
     /* OK, FINALLY we know that this buffer is the only one of it's kind, */
     /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
     bh->b_count=1;
@@ -207,8 +218,21 @@ repeat:
     bh->b_blocknr=block;
     insert_into_queues(bh);
 #ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:get a new buff,dev:0x%x\n\r",bh->b_dev);
+    printk("debug_blk:new buff[0x%x:0x%x]\n\r",bh->b_dev, block);
 #endif
+    return bh;
+}
+
+
+struct buffer_head * get_buff(unsigned int dev, unsigned int block)
+{
+    struct buffer_head * bh;
+
+    do
+    {
+    	  if ((bh = retain_buff(dev,block)) == NULL)
+         	bh = new_buff(dev, block);
+    }while (bh == NULL);
     return bh;
 }
 
@@ -229,9 +253,7 @@ void put_buff(struct buffer_head * buf)
 struct buffer_head * read_buff(unsigned int dev, unsigned int block)
 {
     struct buffer_head * bh;
-#ifdef _DEBUG_FLAG_BLK
-    puts("debug_blk:reading buff\n\r");
-#endif
+
     if (!(bh=get_buff(dev,block)))
         panic("read_buff: get_buff returned NULL\n");
     if (bh->b_uptodate)

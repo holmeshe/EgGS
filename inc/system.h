@@ -13,7 +13,11 @@ typedef struct regs
     unsigned int eip, cs, eflags, useresp, ss;
 }STR_REGS;
 
-#define _DEBUG_FLAG_BLK
+//debug flags
+//#define _DEBUG_FLAG_BLK
+#define _DEBUG_FLAG_FS
+
+//end debug flags
 
 //inline assembly utilities
 #define sti() __asm__ ("sti"::)

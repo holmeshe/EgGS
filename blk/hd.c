@@ -47,7 +47,7 @@ __asm__("cld;rep;outsw"::"d" (port),"S" (buf),"c" (nr))
 static inline void end_request(int uptodate)
 {
 #ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:end request dev:0x%x uptodate:%d\n\r",CURRENT_REQUEST->dev,uptodate);
+    printk("debug_blk:---end request dev[0x%x] uptodate[%d]\n\r",CURRENT_REQUEST->dev,uptodate);
 #endif
 
     DEVICE_OFF(CURRENT_REQUEST->dev);
@@ -165,7 +165,7 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
                    unsigned int head,unsigned int cyl,unsigned int cmd,
                    void (*intr_addr)(void))
 {
-    int port;
+    register int port;
 
     if (drive>1 || head>15)
         panic("Trying to write bad sector");
@@ -228,9 +228,10 @@ static void bad_rw_intr(void)
 void do_hd_request(void)
 {
     int i,r = 0;
-    unsigned int block,dev;
+    unsigned int block;
     unsigned int sec,head,cyl;
     unsigned int nsect;
+    unsigned int drive, partition;
 
 repeat:
     if (!CURRENT_REQUEST)
@@ -245,54 +246,59 @@ repeat:
             panic(DEVICE_NAME ": block not locked");
     }
 
-    dev = MINOR(CURRENT_REQUEST->dev);
+    partition = MINOR(CURRENT_REQUEST->dev);
+    drive = partition / 5;
     block = CURRENT_REQUEST->sector;
-    if (dev >= NR_HD*5 || block+2 > partition_info[dev].nr_sects)
+    if (partition >= NR_HD*5 || block+2 > partition_info[partition].nr_sects)
     {
         end_request(0);
         goto repeat;
     }
+    block += partition_info[partition].start_sect;
+#ifdef _DEBUG_FLAG_BLK
+    printk("debug_blk:info dev[0x%x] partition[%d] offset[%d] drive[0x%x] sector[%d]\n\r",
+    CURRENT_REQUEST->dev, partition, partition_info[partition].start_sect, drive, block);
+#endif
 
-    dev /= 5;
+    __asm__("divl %4":"=a" (block),"=d" (sec):"0" (block),"1" (0),
+            "r" (hd_info[drive].sect));                             //this line: chs
+    __asm__("divl %4":"=a" (cyl),"=d" (head):"0" (block),"1" (0),
+            "r" (hd_info[drive].head));                             //this line: chs
+    sec++;
 
     if (reset)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:dev:0x%x reset\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:dev[0x%x] reset\n\r",CURRENT_REQUEST->dev);
 #endif
         reset = 0;
         recalibrate = 1;
-        reset_controller(dev);
+        reset_controller(drive);
 
         return;
     }
     if (recalibrate)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:dev:0x%x recalibrate\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:dev[0x%x] recalibrate\n\r",CURRENT_REQUEST->dev);
 #endif
         recalibrate = 0;
-        hd_out(dev,hd_info[dev].sect,0,0,0,
+        hd_out(drive,hd_info[drive].sect,0,0,0,
                WIN_RESTORE,&recal_intr);
         return;
     }
 
-    block += partition_info[dev].start_sect;
-    __asm__("divl %4":"=a" (block),"=d" (sec):"0" (block),"1" (0),
-            "r" (hd_info[dev].sect));                             //this line: chs
-    __asm__("divl %4":"=a" (cyl),"=d" (head):"0" (block),"1" (0),
-            "r" (hd_info[dev].head));                             //this line: chs
-    sec++;
+
     nsect = CURRENT_REQUEST->nr_sectors;
 
 
     if (CURRENT_REQUEST->cmd == WRITE)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:write to dev:0x%x\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:write to dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
 
-        hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
+        hd_out(drive,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
         for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)
             /* nothing */ ;
         if (!r)
@@ -306,10 +312,10 @@ repeat:
     else if (CURRENT_REQUEST->cmd == READ)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:read from dev:0x%x\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:read from dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
 
-        hd_out(dev,nsect,sec,head,cyl,WIN_READ,&read_intr);
+        hd_out(drive,nsect,sec,head,cyl,WIN_READ,&read_intr);
     }
     else
         panic("unknown hd-command");
@@ -318,10 +324,6 @@ repeat:
 
 static void read_intr(void)
 {
-#ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:read interruption called dev:0x%x\n\r",CURRENT_REQUEST->dev);
-#endif
-
     if (win_result())
     {
         bad_rw_intr();
@@ -336,7 +338,7 @@ static void read_intr(void)
     if (--CURRENT_REQUEST->nr_sectors)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:more read from dev:0x%x\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:more read from dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
 
         irq_install_handler(14, &read_intr);
@@ -344,7 +346,7 @@ static void read_intr(void)
     }
 
 #ifdef _DEBUG_FLAG_BLK
-            printk("debug_blk:done read dev:0x%x\n\r",CURRENT_REQUEST->dev);
+            printk("debug_blk:done reading dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
 
     end_request(1);
@@ -353,10 +355,6 @@ static void read_intr(void)
 
 static void write_intr(void)
 {
-#ifdef _DEBUG_FLAG_BLK
-          printk("debug_blk:write interruption called dev:0x%x\n\r",CURRENT_REQUEST->dev);
-#endif
-
     if (win_result())
     {
         bad_rw_intr();
@@ -367,7 +365,7 @@ static void write_intr(void)
     if (--CURRENT_REQUEST->nr_sectors)
     {
 #ifdef _DEBUG_FLAG_BLK
-        printk("debug_blk:more write to dev:0x%x\n\r",CURRENT_REQUEST->dev);
+        printk("debug_blk:more write to dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
         CURRENT_REQUEST->sector++;
         CURRENT_REQUEST->buffer += 512;
@@ -377,7 +375,7 @@ static void write_intr(void)
     }
 
 #ifdef _DEBUG_FLAG_BLK
-            printk("debug_blk:done write dev:0x%x\n\r",CURRENT_REQUEST->dev);
+            printk("debug_blk:done write dev[0x%x]\n\r",CURRENT_REQUEST->dev);
 #endif
     
     end_request(1);
@@ -386,16 +384,15 @@ static void write_intr(void)
 
 static void recal_intr(void)
 {
-#ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:recal interruption called dev:0x%x\n\r",CURRENT_REQUEST->dev);
-
-#endif
-
     if (win_result())
     {
         bad_rw_intr();
         printk("reset failed dev:0x%x times:%d\n\r",CURRENT_REQUEST->dev, CURRENT_REQUEST->errors);
     }
+#ifdef _DEBUG_FLAG_BLK
+        printk("debug_blk:done reset dev[0x%x]\n\r",CURRENT_REQUEST->dev);
+#endif
+
     do_hd_request();
 }
 

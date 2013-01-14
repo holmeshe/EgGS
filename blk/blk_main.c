@@ -124,7 +124,7 @@ repeat:
             return;
         }
 #ifdef _DEBUG_FLAG_BLK
-                    printk("debug_blk:request queue full, sleep\n\r");
+        printk("debug_blk:request queue full, sleep\n\r");
 #endif
 //tpc               sleep_on(&wait_for_request);
 
@@ -141,7 +141,7 @@ repeat:
     req->bh = bh;
     req->next = NULL;
 #ifdef _DEBUG_FLAG_BLK
-    printk("debug_blk:add request queue major:%d dev:0x%x cmd:%d sector:%d\n\r", 
+    printk("debug_blk:---add request queue major:%d dev:0x%x cmd:%d sector:%d\n\r", 
             major, req->dev, req->cmd, req->sector);
 #endif
     add_request(&blk_dev[major],req);

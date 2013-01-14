@@ -17,7 +17,11 @@ void kmain(unsigned long magic, multiboot_info_t * mbi)
    isrs_install();
    irq_install();
    timer_install();
-   init_blk(mbi);
+   
+   sys_setup(mbi);
+
+   test_inode();
+   
    __asm__ __volatile__ ("sti");
 
    printk("EgGS:hello there!\n");

@@ -1,4 +1,5 @@
 #include "system.h"
+#include "fs.h"
 
 void *memcpy(void *dest, const void *src, size_t count)
 {
@@ -199,6 +200,7 @@ int vsprintf(char *buf, const char *fmt, va_list args)
                 precision = skip_atoi(&fmt);
             else if (*fmt == '*')
             {
+                ++fmt;
                 /* it's the next argument */
                 precision = va_arg(args, int);
             }
@@ -315,4 +317,18 @@ void panic(const char * s)
 	for(;;);
 }
 
+int match(int len,const char * k_name, const char * u_name)
+{
+	register int same ;
 
+	if (len > NAME_LEN)
+		return 0;
+
+	__asm__("cld\n\t"
+		"fs ; repe ; cmpsb\n\t"
+		"setz %%al"
+		:"=a" (same)
+		:"0" (0),"S" ((long) k_name),"D" ((long) u_name),"c" (len)
+		);
+	return same;
+}
